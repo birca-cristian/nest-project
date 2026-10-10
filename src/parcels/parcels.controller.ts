@@ -11,6 +11,7 @@ import { ParcelsService } from './parcels.service';
 import { Parcel, ParcelStatus } from './parcel.model';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { CreateParcelDto } from './dto/create-parcel.dto';
+import { UpdateParcelStatusDto } from './dto/update-parcel-status.dto';
 
 @ApiTags('Parcels')
 @Controller('parcels')
@@ -41,12 +42,12 @@ export class ParcelsController {
     this.parcelsService.deleteParcel(id);
   }
 
-  @Patch('/:id/status')
-  @ApiOperation({ summary: 'Update parcel status' })
-  updateParcelStatus(
-    @Param('id') id: string,
-    @Body('status') status: ParcelStatus,
-  ): Parcel {
-    return this.parcelsService.updateParcelStatus(id, status);
-  }
+@Patch('/:id/status')
+@ApiOperation({ summary: 'Update parcel status' })
+updateParcelStatus(
+  @Param('id') id: string,
+  @Body() updateParcelStatusDto: UpdateParcelStatusDto, 
+): Parcel {
+   return this.parcelsService.updateParcelStatus(id, updateParcelStatusDto.status);
+}
 }

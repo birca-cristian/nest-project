@@ -1,5 +1,3 @@
-import { StringLiteral } from 'typescript';
-
 export class Parcel {
   id: string;
   trackingNumber: string;
