@@ -1,17 +1,17 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
   Patch,
+  Post,
+  Put,
 } from '@nestjs/common';
-import { ParcelsService } from './parcels.service';
-import { Parcel, ParcelStatus } from './parcel.model';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateParcelDto } from './dto/create-parcel.dto';
 import { UpdateParcelStatusDto } from './dto/update-parcel-status.dto';
+import { ParcelsService } from './parcels.service';
 
 @ApiTags('Parcels')
 @Controller('parcels')
@@ -20,34 +20,46 @@ export class ParcelsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all parcels' })
-  getAllParcels(): Parcel[] {
+  getAllParcels() {
     return this.parcelsService.getAllParcels();
   }
 
   @Get('/:id')
   @ApiOperation({ summary: 'Get parcel by id' })
-  getParcelById(@Param('id') id: string): Parcel {
+  getParcelById(@Param('id') id: string) {
     return this.parcelsService.getParcelById(id);
   }
 
-  @Post('/create')
+  @Post()
   @ApiOperation({ summary: 'Create parcel' })
-  createParcel(@Body() createParcelDto: CreateParcelDto): Parcel {
+  createParcel(@Body() createParcelDto: CreateParcelDto) {
     return this.parcelsService.createParcel(createParcelDto);
+  }
+
+  @Put('/:id')
+  @ApiOperation({ summary: 'Update parcel' })
+  updateParcel(
+    @Param('id') id: string,
+    @Body() updateParcelDto: CreateParcelDto,
+  ) {
+    return this.parcelsService.updateParcel(id, updateParcelDto);
+  }
+
+  @Patch('/:id/status')
+  @ApiOperation({ summary: 'Update parcel status' })
+  updateParcelStatus(
+    @Param('id') id: string,
+    @Body() updateParcelStatusDto: UpdateParcelStatusDto,
+  ) {
+    return this.parcelsService.updateParcelStatus(
+      id,
+      updateParcelStatusDto.status,
+    );
   }
 
   @Delete('/:id')
   @ApiOperation({ summary: 'Delete parcel' })
-  deleteParcel(@Param('id') id: string): void {
-    this.parcelsService.deleteParcel(id);
+  deleteParcel(@Param('id') id: string) {
+    return this.parcelsService.deleteParcel(id);
   }
-
-@Patch('/:id/status')
-@ApiOperation({ summary: 'Update parcel status' })
-updateParcelStatus(
-  @Param('id') id: string,
-  @Body() updateParcelStatusDto: UpdateParcelStatusDto, 
-): Parcel {
-   return this.parcelsService.updateParcelStatus(id, updateParcelStatusDto.status);
-}
 }

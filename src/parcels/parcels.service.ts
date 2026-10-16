@@ -1,44 +1,73 @@
-import { Injectable } from '@nestjs/common';
-import { Parcel, ParcelStatus } from './parcel.model';
-import { v4 as uuid } from 'uuid';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { isValidObjectId, Model } from 'mongoose';
 import { CreateParcelDto } from './dto/create-parcel.dto';
+import { DuplicateParcelException } from './exceptions/duplicate-parcel.exception';
+import { ParcelNotFoundException } from './exceptions/parcel-not-found.exception';
+import { Parcel, ParcelStatus } from './schemas/parcel.schema';
 
 @Injectable()
 export class ParcelsService {
-  private parcels: Parcel[] = [];
+  constructor(@InjectModel(Parcel.name) private parcelModel: Model<Parcel>) {}
 
-  getAllParcels(): Parcel[] {
-    return this.parcels;
+  async getAllParcels() {
+    return this.parcelModel.find();
   }
 
-  getParcelById(id: string): Parcel {
-    return this.parcels.find((parcel) => parcel.id === id);
-  }
+  async getParcelById(id: string) {
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException(`Invalid parcel ID: ${id}`);
+    }
 
-  createParcel(createParcelDto: CreateParcelDto): Parcel {
-    const { recipientName, destinationAddress, weightKg } = createParcelDto;
-
-    const parcel: Parcel = {
-      id: uuid(),
-      trackingNumber: `AWB-${Math.floor(100000 + Math.random() * 900000)}`,
-      recipientName,
-      destinationAddress,
-      weightKg,
-      status: ParcelStatus.PENDING,
-    };
-
-    this.parcels.push(parcel);
+    const parcel = await this.parcelModel.findById(id);
+    if (!parcel) {
+      throw new ParcelNotFoundException(id);
+    }
 
     return parcel;
   }
 
-  deleteParcel(id: string): void {
-    this.parcels = this.parcels.filter((parcel) => parcel.id !== id);
+  async createParcel(createParcelDto: CreateParcelDto) {
+    const existing = await this.parcelModel.findOne({
+      trackingNumber: createParcelDto.trackingNumber,
+    });
+    if (existing) {
+      throw new DuplicateParcelException(createParcelDto.trackingNumber);
+    }
+
+    return this.parcelModel.create(createParcelDto);
   }
 
-  updateParcelStatus(id: string, status: ParcelStatus) {
-    const parcel = this.getParcelById(id);
+  async updateParcel(id: string, updateParcelDto: CreateParcelDto) {
+    const parcel = await this.getParcelById(id);
+
+    const existing = await this.parcelModel.findOne({
+      trackingNumber: updateParcelDto.trackingNumber,
+    });
+    if (existing && existing.id !== parcel.id) {
+      throw new DuplicateParcelException(updateParcelDto.trackingNumber);
+    }
+
+    parcel.set(updateParcelDto);
+    return parcel.save();
+  }
+
+  async updateParcelStatus(id: string, status: ParcelStatus) {
+    const parcel = await this.getParcelById(id);
+
+    if (parcel.status === ParcelStatus.DELIVERED) {
+      throw new BadRequestException(
+        'Parcel was already delivered, status cannot be changed',
+      );
+    }
+
     parcel.status = status;
-    return parcel;
+    return parcel.save();
+  }
+
+  async deleteParcel(id: string) {
+    const parcel = await this.getParcelById(id);
+    await parcel.deleteOne();
+    return { message: `Parcel with ID ${id} was deleted` };
   }
 }
